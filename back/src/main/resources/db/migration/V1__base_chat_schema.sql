@@ -4,8 +4,13 @@ CREATE TABLE IF NOT EXISTS chat_db.users (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     uuid UUID NOT NULL UNIQUE,
     username VARCHAR(100) NOT NULL,
-    metadata VARCHAR(1000)
+    metadata VARCHAR(1000),
+    color_hex VARCHAR(7) NOT NULL DEFAULT '#000000'
 );
+
+ALTER TABLE chat_db.users
+    ADD CONSTRAINT chk_users_color_hex_format
+    CHECK (color_hex ~ '^#[A-Fa-f0-9]{6}$');
 
 CREATE INDEX IF NOT EXISTS idx_users_uuid
     ON chat_db.users (uuid);

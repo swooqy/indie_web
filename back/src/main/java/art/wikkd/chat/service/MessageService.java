@@ -25,8 +25,9 @@ public class MessageService {
 
     public void sendMessage(MessageDto messageDto) {
         User user = userService.getUserByUuid(messageDto.getUuid());
+		String inputUsername = messageDto.getUsername();
 
-        if(user.getUsername() != messageDto.getUsername()) {
+        if(inputUsername != null && !inputUsername.isBlank() && user.getUsername() != inputUsername) {
             userService.updateUserName(messageDto.getUsername(), messageDto.getUuid());
         }
 

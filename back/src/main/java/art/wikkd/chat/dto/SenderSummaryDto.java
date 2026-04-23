@@ -9,8 +9,10 @@ public class SenderSummaryDto {
 	public SenderSummaryDto(User user) {
 		this.id = user.getId();
 		this.username = user.getUsername();
+		this.colorHex = user.getColorHex();
 	}
 
 	private Long id;
 	private String username;
+	private String colorHex;
 }

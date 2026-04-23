@@ -1,17 +1,74 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import './App.css'
+import { BACKEND_ADDRESS } from './config/backend'
+
+const CHAT_MESSAGES_ENDPOINT = import.meta.env.VITE_CHAT_MESSAGES_ENDPOINT ?? '/chat/messages'
+const CHAT_MESSAGES_LIMIT = Number(import.meta.env.VITE_CHAT_MESSAGES_LIMIT ?? 10)
+
+const normalizedMessagesEndpoint = CHAT_MESSAGES_ENDPOINT.startsWith('/')
+  ? CHAT_MESSAGES_ENDPOINT
+  : `/${CHAT_MESSAGES_ENDPOINT}`
+const latestMessagesUrl = `${BACKEND_ADDRESS}${normalizedMessagesEndpoint}/${CHAT_MESSAGES_LIMIT}`
 
 type ChatMessage = {
   id: number
   nickname: string
   text: string
+  usernameColorHex?: string
+}
+
+type BackendChatMessage = {
+  id: number
+  content: string
+  sender: {
+    username: string
+    colorHex: string
+  }
 }
 
 function App() {
   const [nickname, setNickname] = useState('')
   const [messageText, setMessageText] = useState('')
   const [messages, setMessages] = useState<ChatMessage[]>([])
+
+  useEffect(() => {
+    let isMounted = true
+
+    const fetchLatestMessages = async () => {
+      try {
+        const response = await fetch(latestMessagesUrl)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch messages: ${response.status}`)
+        }
+
+        const latestMessages: BackendChatMessage[] = await response.json()
+        if (!isMounted) {
+          return
+        }
+
+        setMessages(
+          latestMessages
+            .slice()
+            .reverse()
+            .map((message) => ({
+              id: message.id,
+              nickname: message.sender.username,
+              text: message.content,
+              usernameColorHex: message.sender.colorHex,
+            })),
+        )
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    void fetchLatestMessages()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -47,7 +104,12 @@ function App() {
           <ul className="message-list">
             {messages.map((message) => (
               <li key={message.id} className="message-item">
-                <span className="message-nickname">{message.nickname}</span>
+                <span
+                  className="message-nickname"
+                  style={message.usernameColorHex ? { color: message.usernameColorHex } : undefined}
+                >
+                  {message.nickname}
+                </span>
                 <p className="message-text">{message.text}</p>
               </li>
             ))}

@@ -38,6 +38,9 @@ public class User {
 	@Column(length = 1000)
 	private String metadata;
 
+	@Column(name = "color_hex", nullable = false, length = 9)
+	private String colorHex;
+
 	@OneToMany(mappedBy = "sender", fetch = FetchType.LAZY)
 	private List<Message> messages = new ArrayList<>();
 }
