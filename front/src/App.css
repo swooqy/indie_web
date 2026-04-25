@@ -12,6 +12,20 @@
   font-size: 1.8rem;
 }
 
+.connection-status {
+  margin: 0;
+  text-align: left;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.error-text {
+  margin: 0;
+  text-align: left;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
 .chat-window {
   border: 1px solid #c9ced6;
   border-radius: 10px;
@@ -96,4 +110,9 @@
 
 .chat-form button:hover {
   background: #1d4ed8;
+}
+
+.chat-form button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
 }

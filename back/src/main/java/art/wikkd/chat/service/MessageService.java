@@ -1,5 +1,6 @@
 package art.wikkd.chat.service;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import org.springframework.data.domain.PageRequest;
@@ -10,6 +11,7 @@ import art.wikkd.chat.dto.MessageResponseDto;
 import art.wikkd.chat.dto.SenderSummaryDto;
 import art.wikkd.chat.entity.Message;
 import art.wikkd.chat.entity.User;
+import art.wikkd.chat.exception.ChatException;
 import art.wikkd.chat.repository.MessageRepository;
 
 @Service
@@ -17,25 +19,42 @@ public class MessageService {
 
 	private final MessageRepository messageRepository;
 	private final UserService userService;
+	private final AsyncMessagePersistenceService asyncMessagePersistenceService;
 
-	public MessageService(MessageRepository messageRepository, UserService userService) {
+	public MessageService(MessageRepository messageRepository, UserService userService,
+			AsyncMessagePersistenceService asyncMessagePersistenceService) {
 		this.messageRepository = messageRepository;
 		this.userService = userService;
+		this.asyncMessagePersistenceService = asyncMessagePersistenceService;
 	}
 
-    public void sendMessage(MessageDto messageDto) {
-        User user = userService.getUserByUuid(messageDto.getUuid());
-		String inputUsername = messageDto.getUsername();
+	public MessageResponseDto sendMessage(MessageDto messageDto) {
+		
+		if (messageDto.getUuid() == null) {
+			throw new ChatException("UUID is required");
+		}
+		
+		String messageContent = normalizeText(messageDto.getMessage());
+		if (messageContent == null) {
+			throw new ChatException("Message cannot be empty");
+		}
 
-        if(inputUsername != null && !inputUsername.isBlank() && user.getUsername() != inputUsername) {
-            userService.updateUserName(messageDto.getUsername(), messageDto.getUuid());
-        }
+		User user = userService.getUserByUuid(messageDto.getUuid());
+		String nextUsername = normalizeText(messageDto.getUsername());
+		if (nextUsername != null && !nextUsername.equals(user.getUsername())) {
+			userService.updateUserName(nextUsername, messageDto.getUuid());
+			user.setUsername(nextUsername);
+		}
 
-        Message message = new Message();
-        message.setContent(messageDto.getMessage());
-        message.setSender(user);
-        messageRepository.save(message);
-    }
+		MessageResponseDto response = MessageResponseDto.builder()
+				.content(messageContent)
+				.createdAt(OffsetDateTime.now())
+				.sender(new SenderSummaryDto(user))
+				.build();
+
+		asyncMessagePersistenceService.persistMessage(user.getId(), messageContent);
+		return response;
+	}
 
 	public List<MessageResponseDto> getLatestMessages(int amount) {
 		return messageRepository.findAllByOrderByIdDesc(PageRequest.of(0, amount)).stream()
@@ -51,5 +70,13 @@ public class MessageService {
 				.createdAt(message.getCreatedAt())
 				.sender(new SenderSummaryDto(sender))
 				.build();
+	}
+
+	private String normalizeText(String input) {
+		if (input == null) {
+			return null;
+		}
+		String trimmed = input.trim();
+		return trimmed.isEmpty() ? null : trimmed;
 	}
 }
