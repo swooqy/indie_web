@@ -23,4 +23,5 @@ public class ChatRestController {
 	public ResponseEntity<List<MessageResponseDto>> getLatestMessages(@PathVariable("amount") int amount) {
 		return ResponseEntity.ok(messageService.getLatestMessages(amount));
 	}
+	
 }

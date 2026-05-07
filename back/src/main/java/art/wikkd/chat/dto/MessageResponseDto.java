@@ -15,5 +15,7 @@ public class MessageResponseDto {
 	private Long id;
 	private String content;
 	private OffsetDateTime createdAt;
-	private SenderSummaryDto sender;
+	private String userName;
+	private Long userId;
+	private String userColorHex;
 }

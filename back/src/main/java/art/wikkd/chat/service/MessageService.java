@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 
 import art.wikkd.chat.dto.MessageDto;
 import art.wikkd.chat.dto.MessageResponseDto;
-import art.wikkd.chat.dto.SenderSummaryDto;
 import art.wikkd.chat.entity.Message;
 import art.wikkd.chat.entity.User;
 import art.wikkd.chat.exception.ChatException;
@@ -49,7 +48,9 @@ public class MessageService {
 		MessageResponseDto response = MessageResponseDto.builder()
 				.content(messageContent)
 				.createdAt(OffsetDateTime.now())
-				.sender(new SenderSummaryDto(user))
+				.userColorHex(user.getColorHex())
+				.userName(user.getUsername())
+				.userId(user.getId())
 				.build();
 
 		asyncMessagePersistenceService.persistMessage(user.getId(), messageContent);
@@ -63,12 +64,14 @@ public class MessageService {
 	}
 
 	private MessageResponseDto toResponseDto(Message message) {
-		User sender = message.getSender();
+		User user = message.getSender();
 		return MessageResponseDto.builder()
 				.id(message.getId())
 				.content(message.getContent())
 				.createdAt(message.getCreatedAt())
-				.sender(new SenderSummaryDto(sender))
+				.userColorHex(user.getColorHex())
+				.userName(user.getUsername())
+				.userId(user.getId())
 				.build();
 	}
 

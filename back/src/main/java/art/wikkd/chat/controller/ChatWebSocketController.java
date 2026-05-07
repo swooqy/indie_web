@@ -31,14 +31,14 @@ public class ChatWebSocketController {
 	@MessageMapping("/topic/chat")
 	public void sendMessage(MessageDto messageDto) {
 		MessageResponseDto messageResponse = messageService.sendMessage(messageDto);
-		log.info("Sending message to /topic/chat/messages: {}", messageResponse);
+		log.debug("Sending message to /topic/chat/messages: {}", messageResponse);
 		simpMessagingTemplate.convertAndSend("/topic/chat/messages", messageResponse);
 	}
 
 	@MessageExceptionHandler(ChatException.class)
 	@SendToUser("/topic/user/errors")
 	public WebSocketErrorDto handleChatError(ChatException chatException) {
-		log.error("Error sending message to /topic/chat/messages: {}", chatException.getMessage());
+		log.warn("Error sending message to /topic/chat/messages: {}", chatException.getMessage());
 		return new WebSocketErrorDto(chatException.getMessage());
 	}
 }
