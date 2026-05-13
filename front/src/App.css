@@ -56,6 +56,12 @@
   text-align: left;
 }
 
+.message-history-status {
+  color: #5f697a;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
 .message-nickname {
   display: block;
   margin-bottom: 4px;

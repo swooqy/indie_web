@@ -16,6 +16,9 @@ import art.wikkd.chat.repository.MessageRepository;
 @Service
 public class MessageService {
 
+	private static final int DEFAULT_MESSAGE_LIMIT = 10;
+	private static final int MAX_MESSAGE_LIMIT = 100;
+
 	private final MessageRepository messageRepository;
 	private final UserService userService;
 	private final AsyncMessagePersistenceService asyncMessagePersistenceService;
@@ -58,7 +61,17 @@ public class MessageService {
 	}
 
 	public List<MessageResponseDto> getLatestMessages(int amount) {
-		return messageRepository.findAllByOrderByIdDesc(PageRequest.of(0, amount)).stream()
+		return messageRepository.findAllByOrderByIdDesc(PageRequest.of(0, normalizeLimit(amount))).stream()
+				.map(this::toResponseDto)
+				.toList();
+	}
+
+	public List<MessageResponseDto> getMessagesBefore(Long beforeId, int amount) {
+		if (beforeId == null || beforeId <= 0) {
+			return getLatestMessages(amount);
+		}
+
+		return messageRepository.findByIdLessThanOrderByIdDesc(beforeId, PageRequest.of(0, normalizeLimit(amount))).stream()
 				.map(this::toResponseDto)
 				.toList();
 	}
@@ -81,5 +94,12 @@ public class MessageService {
 		}
 		String trimmed = input.trim();
 		return trimmed.isEmpty() ? null : trimmed;
+	}
+
+	private int normalizeLimit(int amount) {
+		if (amount <= 0) {
+			return DEFAULT_MESSAGE_LIMIT;
+		}
+		return Math.min(amount, MAX_MESSAGE_LIMIT);
 	}
 }

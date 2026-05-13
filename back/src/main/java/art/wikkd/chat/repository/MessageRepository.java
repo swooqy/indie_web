@@ -10,4 +10,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
 	@EntityGraph(attributePaths = "sender")
 	List<Message> findAllByOrderByIdDesc(Pageable pageable);
+
+	@EntityGraph(attributePaths = "sender")
+	List<Message> findByIdLessThanOrderByIdDesc(Long beforeId, Pageable pageable);
 }

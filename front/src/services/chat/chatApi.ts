@@ -1,14 +1,19 @@
-import { latestMessagesUrl, registerUserBaseUrl } from './chatConstants'
+import { buildMessagesUrl, registerUserBaseUrl } from './chatConstants'
 import type { ChatMessage } from './chatTypes'
 
-export const loadLatestMessages = async () => {
-  const response = await fetch(latestMessagesUrl, { credentials: 'include' })
+const loadMessages = async (url: string) => {
+  const response = await fetch(url, { credentials: 'include' })
   if (!response.ok) {
     throw new Error(`Failed to fetch messages: ${response.status}`)
   }
 
   return (await response.json()) as ChatMessage[]
 }
+
+export const loadLatestMessages = async () => loadMessages(buildMessagesUrl())
+
+export const loadMessagesBefore = async (beforeId: number) =>
+  loadMessages(buildMessagesUrl({ beforeId }))
 
 export const registerUser = async (username: string) => {
   const response = await fetch(`${registerUserBaseUrl}/${encodeURIComponent(username)}`, {

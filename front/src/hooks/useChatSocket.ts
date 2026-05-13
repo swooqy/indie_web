@@ -19,7 +19,6 @@ export function useChatSocket({ enabled, onChatMessage, onErrorMessage }: UseCha
 
   useEffect(() => {
     if (!enabled) {
-      setIsConnected(false)
       return
     }
 

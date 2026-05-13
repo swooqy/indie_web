@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { SubmitEvent } from 'react'
 import { useChatSocket } from './useChatSocket'
-import { registerUser, loadLatestMessages } from '../services/chat/chatApi'
+import { registerUser, loadLatestMessages, loadMessagesBefore } from '../services/chat/chatApi'
 import { userNameCookie, userUuidCookie } from '../services/chat/chatCookies'
-import { CHAT_SEND_DESTINATION } from '../services/chat/chatConstants'
+import { CHAT_SEND_DESTINATION, chatMessagesLimit } from '../services/chat/chatConstants'
 import type { ChatMessage } from '../services/chat/chatTypes'
+
+const toChronologicalMessages = (messages: ChatMessage[]) => messages.slice().reverse()
+
+const getOldestMessageId = (messages: ChatMessage[]) =>
+  messages.find((message) => message.id !== null)?.id ?? null
 
 export function useChatSession() {
   const [nickname, setNickname] = useState('')
@@ -12,11 +17,12 @@ export function useChatSession() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [errorText, setErrorText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false)
+  const [hasMoreMessages, setHasMoreMessages] = useState(true)
   const [isSocketEnabled, setIsSocketEnabled] = useState(false)
-  const nextRealtimeMessageId = useRef(0)
+  const isLoadingOlderMessagesRef = useRef(false)
 
   const onChatMessage = useCallback((payload: ChatMessage) => {
-    nextRealtimeMessageId.current += 1
     setMessages((currentMessages) => [...currentMessages, payload])
   }, [])
 
@@ -45,11 +51,8 @@ export function useChatSession() {
           return
         }
 
-        setMessages(
-          latestMessages
-            .slice()
-            .reverse()
-        )
+        setMessages(toChronologicalMessages(latestMessages))
+        setHasMoreMessages(latestMessages.length === chatMessagesLimit)
       } catch (error) {
         console.error(error)
       } finally {
@@ -65,6 +68,45 @@ export function useChatSession() {
       isMounted = false
     }
   }, [])
+
+  const loadOlderMessages = useCallback(async () => {
+    if (isLoadingOlderMessagesRef.current || !hasMoreMessages) {
+      return
+    }
+
+    const oldestMessageId = getOldestMessageId(messages)
+    if (oldestMessageId === null) {
+      setHasMoreMessages(false)
+      return
+    }
+
+    isLoadingOlderMessagesRef.current = true
+    setIsLoadingOlderMessages(true)
+    try {
+      const olderMessages = await loadMessagesBefore(oldestMessageId)
+      const olderMessagesChronological = toChronologicalMessages(olderMessages)
+
+      setMessages((currentMessages) => {
+        const existingMessageIds = new Set(
+          currentMessages
+            .map((message) => message.id)
+            .filter((id): id is number => id !== null),
+        )
+        const nextOlderMessages = olderMessagesChronological.filter(
+          (message) => message.id === null || !existingMessageIds.has(message.id),
+        )
+
+        return [...nextOlderMessages, ...currentMessages]
+      })
+      setHasMoreMessages(olderMessages.length === chatMessagesLimit)
+    } catch (error) {
+      console.error(error)
+      setErrorText('Unable to load older messages right now.')
+    } finally {
+      isLoadingOlderMessagesRef.current = false
+      setIsLoadingOlderMessages(false)
+    }
+  }, [hasMoreMessages, messages])
 
   const handleSubmit = useCallback(
     async (event: SubmitEvent<HTMLFormElement>) => {
@@ -127,8 +169,11 @@ export function useChatSession() {
     isSocketConnected,
     isSubmitting,
     isSendDisabled,
+    isLoadingOlderMessages,
+    hasMoreMessages,
     setNickname,
     setMessageText,
     handleSubmit,
+    loadOlderMessages,
   }
 }

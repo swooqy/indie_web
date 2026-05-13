@@ -8,7 +8,16 @@ const normalizedMessagesEndpoint = CHAT_MESSAGES_ENDPOINT.startsWith('/')
   ? CHAT_MESSAGES_ENDPOINT
   : `/${CHAT_MESSAGES_ENDPOINT}`
 
-export const latestMessagesUrl = `${BACKEND_ADDRESS}${normalizedMessagesEndpoint}/${CHAT_MESSAGES_LIMIT}`
+export const chatMessagesLimit = CHAT_MESSAGES_LIMIT
+export const buildMessagesUrl = ({ beforeId, limit = CHAT_MESSAGES_LIMIT }: { beforeId?: number; limit?: number } = {}) => {
+  const searchParams = new URLSearchParams({ limit: String(limit) })
+
+  if (beforeId !== undefined) {
+    searchParams.set('beforeId', String(beforeId))
+  }
+
+  return `${BACKEND_ADDRESS}${normalizedMessagesEndpoint}?${searchParams.toString()}`
+}
 export const registerUserBaseUrl = `${BACKEND_ADDRESS}${REGISTER_USER_ENDPOINT}`
 
 export const CHAT_SEND_DESTINATION = '/api/topic/chat'
